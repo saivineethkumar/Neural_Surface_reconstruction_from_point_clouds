@@ -23,11 +23,26 @@ def train(dataset, model, optimizer, args):
     loss_count = 0.0
     num_batch = len(dataset)
     for i in range(num_batch):
+        # **** YOU SHOULD ADD TRAINING CODE HERE, CURRENTLY IT IS INCORRECT **** - Changed this
+
+        # forward pass
+        optimizer.zero_grad()
         data = dataset[i]  # a dict
 
-        # **** YOU SHOULD ADD TRAINING CODE HERE, CURRENTLY IT IS INCORRECT ****
         xyz_tensor = data['xyz'].to(device)
-        loss_sum += 1. * xyz_tensor.shape[0]
+        gt_tensor = data['gt_sdf'].to(device)
+        gt_tensor = torch.clamp(gt_tensor, -1*args.clamping_distance, args.clamping_distance)
+        pred_tensor = model(xyz_tensor)
+        pred_tensor = torch.clamp(pred_tensor, -1*args.clamping_distance, args.clamping_distance)
+
+        # loss 
+        loss = torch.abs(pred_tensor - gt_tensor)
+        loss = torch.sum(loss)
+
+        # back propagation
+        loss.backward()
+        optimizer.step()
+        loss_sum += loss.detach()
         loss_count += xyz_tensor.shape[0]
         # ***********************************************************************
 
@@ -41,12 +56,20 @@ def val(dataset, model, optimizer, args):
     loss_count = 0.0
     num_batch = len(dataset)
     for i in range(num_batch):
-        data = dataset[i]  # a dict
+        # **** YOU SHOULD ADD TRAINING CODE HERE, CURRENTLY IT IS INCORRECT **** - Changed this
 
-        # **** YOU SHOULD ADD TRAINING CODE HERE, CURRENTLY IT IS INCORRECT ****
         with torch.no_grad():
+            data = dataset[i]  # a dict
             xyz_tensor = data['xyz'].to(device)
-            loss_sum += 1. * xyz_tensor.shape[0]
+            gt_tensor = data['gt_sdf'].to(device)
+            gt_tensor = torch.clamp(gt_tensor, -1*args.clamping_distance, args.clamping_distance)
+            pred_tensor = model(xyz_tensor)
+            pred_tensor = torch.clamp(pred_tensor, -1*args.clamping_distance, args.clamping_distance)
+
+            loss = torch.abs(pred_tensor - gt_tensor)
+            loss = torch.sum(loss)
+
+            loss_sum += loss.detach()
             loss_count += xyz_tensor.shape[0]
         # ***********************************************************************
 
