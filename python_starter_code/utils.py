@@ -99,9 +99,25 @@ class SdfDataset(data.Dataset):
                 # a Gaussian distribution described in the assignment page.
                 # For validation set, just do this sampling process for one time.
                 # For training set, do this sampling process per each iteration (see code in __getitem__).
-                self.samples_sdf = np.random.random(size=(self.points.shape[0], 1))
-                self.samples_xyz = self.points + np.random.random(size=(self.points.shape[0], 3))
+                # self.samples_sdf = np.random.random(size=(self.points.shape[0], 1))
+                # self.samples_xyz = self.points + np.random.random(size=(self.points.shape[0], 3))
+                n_samples = args.N_samples  #100
+                points_repeated = np.repeat(self.points,n_samples,axis=0)
+                normals_repeated = np.repeat(self.normals, n_samples, axis=0)
+                es = np.random.normal(0,self.sample_std,size=(points_repeated.shape[0],1))
+                self.samples_xyz = points_repeated + es*normals_repeated
+                self.samples_sdf = es
                 # ***********************************************************************
+            elif phase == 'train':
+                # we create data for training here but take samples from this data in __getitem__
+                # we create here inorder to avoid creation repetition 
+                n_samples = args.N_samples  #100
+                points_repeated = np.repeat(self.points,n_samples,axis=0)
+                normals_repeated = np.repeat(self.normals, n_samples, axis=0)
+                es = np.random.normal(0,self.sample_std,size=(points_repeated.shape[0],1))
+                self.train_xyz = points_repeated + es*normals_repeated
+                self.train_gt_sdf = es
+                self.train_all_indices = np.arange(self.train_xyz.shape[0])
 
     def __len__(self):
         return self.number_batches
@@ -118,8 +134,11 @@ class SdfDataset(data.Dataset):
             # Sample random points around surface point along the normal direction based on
             # a Gaussian distribution described in the assignment page.
             # For training set, do this sampling process per each iteration.
-            gt_sdf = np.random.random(size=(self.points.shape[0], 1))
-            xyz = self.points + np.random.random(size=(self.points.shape[0], 3))
+            # gt_sdf = np.random.random(size=(self.points.shape[0], 1))
+            # xyz = self.points + np.random.random(size=(self.points.shape[0], 3))
+            inds = np.random.choice(self.train_all_indices, self.bs, replace=True)
+            xyz = self.train_xyz[inds]
+            gt_sdf = self.train_gt_sdf[inds]
             # ***********************************************************************
 
         else:
